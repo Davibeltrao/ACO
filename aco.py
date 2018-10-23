@@ -47,7 +47,38 @@ class Graph():
         return [key for key in self.graph[node].keys()]
 #print()
 
-def ACO(graph, num_ants):
+def aco_iteration(graph, num_ants):
+    paths=[]
+    fitness_list=[]
+
+    for ant in range(num_ants):
+        path_i = generate_path(graph)
+        if(path_i != None):
+            paths.append(path_i)
+
+    print(paths)
+    for path in paths:
+        fitness_list.append((path, calculate_fitness(graph, path)))
+        break
+
+    print(fitness_list)
+
+def calculate_fitness(graph, path):
+    #Get first node and iretate over the others
+    origin = path[0]
+    path = path[1:]
+
+    #set initial fitness
+    fitness=0
+
+    #Fitness = Sum of all edges ( path(u,v) ) of path
+    for dest in path:
+        fitness+=graph._getWeight(origin, dest)
+        origin=dest
+    
+    return fitness
+
+def generate_path(graph):
     start_node=graph.INIT
     end_node=graph.END
 
@@ -68,12 +99,12 @@ def ACO(graph, num_ants):
 
         path.append(actual_node)
 
-    print(path)    
+    #print(path)    
     return path
 
 def getNextNode(probabilities):
     rand_val = random.random()
-    print("Rand:", rand_val)
+    #print("Rand:", rand_val)
     total = 0
     for k, v in probabilities.items():
         total += v
@@ -106,5 +137,6 @@ def neighbor_probabilities(graph, actual_node):
 
 
 graph = Graph('./datasets/graph1.txt')
-ACO(graph, 1)
+#ACO(graph, 1)
 #print(graph.graph)
+aco_iteration(graph, 3)
