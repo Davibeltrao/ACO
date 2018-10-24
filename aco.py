@@ -2,7 +2,13 @@ import sys
 import os
 import time
 import random
+import copy
 import operator
+
+MIN_PHEROMONE=1
+MAX_PHEROMONE=50
+K_BEST=10
+EVAPORATE_RATIO=0.1
 
 class Graph():
     def __init__(self, file):
@@ -38,7 +44,12 @@ class Graph():
         return self.graph[ori][dest]['weight']
     
     def _setPheromone(self, ori, dest, pheronome):
-        self.graph[ori][dest]['pheromone']=pheronome
+        if pheronome <= MIN_PHEROMONE:
+            self.graph[ori][dest]['pheromone']=MIN_PHEROMONE
+        elif pheronome >= MAX_PHEROMONE:
+            self.graph[ori][dest]['pheromone']=MAX_PHEROMONE
+        else:
+            self.graph[ori][dest]['pheromone']=pheronome
     
     def _getPheromone(self, ori, dest):
         return self.graph[ori][dest]['pheromone']
@@ -47,21 +58,88 @@ class Graph():
         return [key for key in self.graph[node].keys()]
 #print()
 
+def update_pheromone(graph, path, path_fitness):
+    origin=path[0]
+    aux_path=path[1:]
+    
+    max_weight=0
+
+    for dest in aux_path:
+        weight=graph._getWeight(origin, dest)
+        max_weight=max(weight, max_weight)
+        origin=dest
+    
+    pheromone_update_value = float(max_weight)/path_fitness
+
+    origin=path[0]
+    for dest in aux_path:
+        #Update pheromone
+        pheromone=graph._getPheromone(origin, dest)
+        pheromone*=(1+pheromone_update_value)
+        graph._setPheromone(origin, dest, pheromone)
+
+        origin=dest
+
+def evaporate_pheromone(graph, path):
+    origin=path[0]
+    aux_path=path[1:]
+    for dest in aux_path:
+        pheromone=graph._getPheromone(origin, dest)
+        pheromone*=(1-EVAPORATE_RATIO)
+        graph._setPheromone(origin, dest, pheromone)
+        origin=dest
+
+
+
 def aco_iteration(graph, num_ants):
     paths=[]
     fitness_list=[]
+    fitness_value_list=[]
 
-    for ant in range(num_ants):
+    for _ in range(num_ants):
         path_i = generate_path(graph)
         if(path_i != None):
             paths.append(path_i)
 
-    print(paths)
-    for path in paths:
-        fitness_list.append((path, calculate_fitness(graph, path)))
-        break
+    #print(paths)
+    max_fit=0
+    best_path=None
 
-    print(fitness_list)
+    for path in paths:
+        fitness=calculate_fitness(graph, path)
+        fitness_list.append((path, fitness))
+        fitness_value_list.append(fitness)
+        if(max_fit < fitness):
+            max_fit=fitness
+            best_path=path
+        #break
+
+    print("Max fitness: ", max_fit)
+    #print("Path: ", path)
+
+    #print("ALL FITNESS:", fitness_value_list)
+
+    best_fitness_values=[]
+    for _ in range(K_BEST):
+        best_fitness_values.append(max(fitness_value_list))
+        fitness_value_list.remove(max(fitness_value_list))
+        #pass
+    #print(fitness_list)    
+    
+    #print("BEST K FITNESS:", best_fitness_values)
+
+    for path in fitness_list:
+        if(path[1] not in best_fitness_values):
+            fitness_list.remove(path)
+
+    for path in fitness_list:
+        update_pheromone(graph, path[0], path[1])
+        #break
+
+    for path in fitness_list:
+        evaporate_pheromone(graph, path[0])
+
+    return "Iteration sucessfull"
 
 def calculate_fitness(graph, path):
     #Get first node and iretate over the others
@@ -130,13 +208,18 @@ def neighbor_probabilities(graph, actual_node):
     for prob in probabilities:
         probabilities[prob] /= total_probabilties
     
-    sorted_probs = sorted(probabilities.items(), key=operator.itemgetter(1))
-    #print(sorted_probs)
-
+    #sort probabilities
+    #sorted_probs = sorted(probabilities.items(), key=operator.itemgetter(1))
+    
     return probabilities
+
+def ACO(graph, num_iterations):
+    for _ in range(num_iterations):
+        aco_iteration(graph, 300)
 
 
 graph = Graph('./datasets/graph1.txt')
 #ACO(graph, 1)
 #print(graph.graph)
-aco_iteration(graph, 3)
+#aco_iteration(graph, 300)
+ACO(graph, 500)
