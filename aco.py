@@ -4,11 +4,12 @@ import time
 import random
 import copy
 import operator
+import numpy as np
 
 #MIN_PHEROMONE=
 #MAX_PHEROMONE=1000
 K_BEST=100
-EVAPORATE_RATIO=0.05 
+EVAPORATE_RATIO=0.5
 
 class Graph():
     def __init__(self, file):
@@ -58,7 +59,7 @@ class Graph():
         return [key for key in self.graph[node].keys()]
 #print()
 
-def update_pheromone(graph, path, path_fitness):
+def update_pheromone(graph, path, path_fitness, divider=1):
     origin=path[0]
     aux_path=path[1:]
     
@@ -72,10 +73,21 @@ def update_pheromone(graph, path, path_fitness):
     pheromone_update_value = float(max_weight)/path_fitness
 
     origin=path[0]
+
+    #print("PATH: ", aux_path)
+    #time.sleep(20)
+
+    #print("PATH FITNESS: ", path_fitness)
+
     for dest in aux_path:
         #Update pheromone
         pheromone=graph._getPheromone(origin, dest)
-        pheromone+=3
+        pheromone+=path_fitness
+        #pheromone += 6
+        if origin == '1':
+            #print(pheromone)
+            pass
+        pheromone /= divider
         graph._setPheromone(origin, dest, pheromone)
 
         origin=dest
@@ -122,6 +134,7 @@ def aco_iteration(graph, num_ants):
         if(max_fit < fitness):
             max_fit=fitness
             best_path=path
+            
         #break
 
     print("Max fitness: ", max_fit)
@@ -132,8 +145,9 @@ def aco_iteration(graph, num_ants):
     best_fitness_values=[]
     best_fitness=[]
     for _ in range(K_BEST):
-        best_fitness_values.append(max(fitness_value_list))
-        fitness_value_list.remove(max(fitness_value_list))
+        if len(fitness_value_list) > 0:
+            best_fitness_values.append(max(fitness_value_list))
+            fitness_value_list.remove(max(fitness_value_list))
         #pass
     #print(fitness_list)    
     print("Best: ", best_fitness_values)
@@ -154,9 +168,15 @@ def aco_iteration(graph, num_ants):
     #for path in fitness_list:
     evaporate_pheromone(graph)
         #pass
-    for path in best_fitness:
-        update_pheromone(graph, path[0], path[1])
     
+    #print("BEST FITNESSES: ", best_fitness)
+
+    #print("Best: ", best_fitness)
+    for path in best_fitness:
+        index = best_fitness_values.index(path[1])
+        index = index if index > 0 else 1
+        update_pheromone(graph, path[0], path[1])
+    print()
     return "Iteration sucessfull"
 
 def calculate_fitness(graph, path):
@@ -200,31 +220,48 @@ def generate_path(graph):
 
 def getNextNode(probabilities):
     rand_val = random.random()
+    r = random.uniform(0, sum(probabilities.values()))
+    #keys = list(probabilities.keys())
+    #values = list(probabilities.values())
+    #print(probabilities)
+    #print("Keys: ", keys)
+    #print("Values: ", values)
+    #escolha = np.random.choice(keys, 1, replace=False, p=values)[0]
+    #print("Escolhi: ", escolha)
+    #print("Prob: ", probabilities[escolha])
+    #time.sleep(5)
+    #return np.random.choice(keys, 1, p=values)[0]
+
+    #print("R: ", r)
     #print("Rand:", rand_val)
     total = 0
     for k, v in probabilities.items():
         total += v
-        if rand_val <= total:
+        if r < total:
+            #print("Escolhi: ", k, " com probabilidade: ", v)
+            #time.sleep(10)
             return k
-    assert False, 'unreachable'
+    return k
 
 def neighbor_probabilities(graph, actual_node):
     neighbor_list=graph._adjacentNeighbors(actual_node)
 
     probabilities={}
     total_probabilties=0
-
+    #print("ACTUAL NODE: ", actual_node)
     for neighbor in neighbor_list:
+        #print(neighbor)
         neighbor_weight=graph._getWeight(actual_node, neighbor)
         neightbor_pheromone=graph._getPheromone(actual_node, neighbor)
         
         if(actual_node == "1"):
-            #print("W-{}:P-{:.3f}".format(neighbor_weight, neightbor_pheromone), end="  | ")
+            #print("Neighbor:{}:W-{}:P-{:.3f}".format(neighbor, neighbor_weight, neightbor_pheromone))
             pass
 
         probabilities[neighbor] = neighbor_weight*neightbor_pheromone
 
-        total_probabilties+=probabilities[neighbor]
+        #total_probabilties+=probabilities[neighbor]
+    total_probabilties = sum(float(probabilities[d]) for d in probabilities.keys())
 
     for prob in probabilities:
         probabilities[prob] /= total_probabilties
@@ -233,20 +270,25 @@ def neighbor_probabilities(graph, actual_node):
         #print()
         #print("Probs of {}".format(actual_node))
         for prob in probabilities:
-        #  print("{}:{:.3f}".format(prob, probabilities[prob]), end="  | ")
-           pass
+          #print("{}:{:.3f}".format(prob, probabilities[prob]), end="  | ")
+            pass
         #print("\n\n")
         #time.sleep(3)
     
-        
+
+
+
     #sort probabilities
     #sorted_probs = sorted(probabilities.items(), key=operator.itemgetter(1))
     
     return probabilities
 
 def ACO(graph, num_iterations):
+    cont = 0
     for _ in range(num_iterations):
-        aco_iteration(graph, 500)
+        #print("CONTADOR: {}".format(cont))
+        aco_iteration(graph, 600)
+        cont += 1
 
 
 graph = Graph('./datasets/graph1.txt')
