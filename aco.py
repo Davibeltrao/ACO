@@ -8,8 +8,8 @@ import numpy as np
 
 #MIN_PHEROMONE=
 #MAX_PHEROMONE=1000
-K_BEST=100
-EVAPORATE_RATIO=0.5
+K_BEST=50
+EVAPORATE_RATIO=0.05
 
 class Graph():
     def __init__(self, file):
@@ -113,7 +113,7 @@ def evaporate_pheromone(graph):
         #time.sleep(2) 
 
 
-def aco_iteration(graph, num_ants):
+def aco_iteration(graph, num_ants, best_ind=(None, None), elitism=False):
     paths=[]
     fitness_list=[]
     fitness_value_list=[]
@@ -150,26 +150,33 @@ def aco_iteration(graph, num_ants):
             fitness_value_list.remove(max(fitness_value_list))
         #pass
     #print(fitness_list)    
-    print("Best: ", best_fitness_values)
-    #print("BEST K FITNESS:", best_fitness_values)
+
+    #print("Best Individual", best_ind)
 
     for path in fitness_list:
-        #print("Path: ", path[1])
+        #print("Path: ", path)
         if(path[1] in best_fitness_values):
-            #print("Len list: ", len(fitness_list))
-            #print("Path removed: ", path)
-            best_fitness.append(path)
-            #print("After len: ", len(fitness_list))
+            if elitism == True:
+                if best_ind[1] is None or path[1] > best_ind[1]:
+                    best_fitness.append(path)
+            else:
+                best_fitness.append(path)
 
-    #print("Updatable fitness: ", fitness_list)
-
-        #break
+    for path in fitness_list:
+        if(path[1] in best_fitness_values):
+            if best_ind[1] is None:
+                best_ind = path
+            elif best_ind[1] < path[1]:
+                best_ind = path
 
     #for path in fitness_list:
     evaporate_pheromone(graph)
         #pass
     
-    #print("BEST FITNESSES: ", best_fitness)
+    print("Updatable paths")
+    for path in best_fitness:
+        print(path[1], end=" ")
+    print("\n")
 
     #print("Best: ", best_fitness)
     for path in best_fitness:
@@ -177,7 +184,7 @@ def aco_iteration(graph, num_ants):
         index = index if index > 0 else 1
         update_pheromone(graph, path[0], path[1])
     print()
-    return "Iteration sucessfull"
+    return best_ind
 
 def calculate_fitness(graph, path):
     #Get first node and iretate over the others
@@ -285,9 +292,10 @@ def neighbor_probabilities(graph, actual_node):
 
 def ACO(graph, num_iterations):
     cont = 0
+    best_ind = (None, None)
     for _ in range(num_iterations):
         #print("CONTADOR: {}".format(cont))
-        aco_iteration(graph, 600)
+        best_ind = aco_iteration(graph, 600, best_ind, elitism=False)
         cont += 1
 
 
