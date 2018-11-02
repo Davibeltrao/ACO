@@ -8,8 +8,8 @@ import numpy as np
 
 #MIN_PHEROMONE=
 #MAX_PHEROMONE=1000
-K_BEST=50
-EVAPORATE_RATIO=0.05
+K_BEST=100
+EVAPORATE_RATIO=0.1
 
 class Graph():
     def __init__(self, file):
@@ -31,12 +31,12 @@ class Graph():
         if(ori in self.graph):
             self.graph[ori][dest]={}
             self._setWeight(ori, dest, weight)
-            self._setPheromone(ori, dest, 1)
+            self._setPheromone(ori, dest, 500)
         else:
             self.graph[ori]={}
             self.graph[ori][dest]={}
             self._setWeight(ori, dest, weight)
-            self._setPheromone(ori, dest, 1)
+            self._setPheromone(ori, dest, 500)
         
     def _setWeight(self, ori, dest, weight):
         self.graph[ori][dest]['weight']=int(weight)
@@ -170,7 +170,6 @@ def aco_iteration(graph, num_ants, best_ind=(None, None), elitism=False):
                 best_ind = path
 
     #for path in fitness_list:
-    evaporate_pheromone(graph)
         #pass
     
     print("Updatable paths")
@@ -184,6 +183,9 @@ def aco_iteration(graph, num_ants, best_ind=(None, None), elitism=False):
         index = index if index > 0 else 1
         update_pheromone(graph, path[0], path[1])
     print()
+    
+    evaporate_pheromone(graph)
+
     return best_ind
 
 def calculate_fitness(graph, path):
@@ -226,10 +228,10 @@ def generate_path(graph):
     return path
 
 def getNextNode(probabilities):
-    rand_val = random.random()
-    r = random.uniform(0, sum(probabilities.values()))
-    #keys = list(probabilities.keys())
-    #values = list(probabilities.values())
+    #rand_val = random.random()
+    #r = random.uniform(0, sum(probabilities.values()))
+    keys = list(probabilities.keys())
+    values = list(probabilities.values())
     #print(probabilities)
     #print("Keys: ", keys)
     #print("Values: ", values)
@@ -237,7 +239,7 @@ def getNextNode(probabilities):
     #print("Escolhi: ", escolha)
     #print("Prob: ", probabilities[escolha])
     #time.sleep(5)
-    #return np.random.choice(keys, 1, p=values)[0]
+    return np.random.choice(keys, 1, p=values)[0]
 
     #print("R: ", r)
     #print("Rand:", rand_val)
@@ -267,8 +269,8 @@ def neighbor_probabilities(graph, actual_node):
 
         probabilities[neighbor] = neighbor_weight*neightbor_pheromone
 
-        #total_probabilties+=probabilities[neighbor]
-    total_probabilties = sum(float(probabilities[d]) for d in probabilities.keys())
+        total_probabilties+=probabilities[neighbor]
+    #total_probabilties = sum(float(probabilities[d]) for d in probabilities.keys())
 
     for prob in probabilities:
         probabilities[prob] /= total_probabilties
@@ -303,4 +305,4 @@ graph = Graph('./datasets/graph1.txt')
 #ACO(graph, 1)
 #print(graph.graph)
 #aco_iteration(graph, 300)
-ACO(graph, 500)
+ACO(graph, 5000)
