@@ -26,7 +26,7 @@ class Graph():
         self.graph = {}
         self.INIT = '1'
         self.END = self._getEndNode(lines) 
-        print("Init:", self.INIT, " End:", self.END)
+        # print("Init:", self.INIT, " End:", self.END)
         for vertex in lines:
             self.addEdge(vertex[0], vertex[1], vertex[2])
 
@@ -155,7 +155,7 @@ def aco_iteration(graph, num_ants, best_ind=(None, None), elitism=False):
 
     average_fitness = np.array(fitness_value_list).mean()
 
-    print("Best: {} Worst: {} Average: {}".format(
+    """print("Best: {} Worst: {} Average: {}".format(
                                                   max_fit, 
                                                   worst_fitness, 
                                                   average_fitness
@@ -165,7 +165,7 @@ def aco_iteration(graph, num_ants, best_ind=(None, None), elitism=False):
     # print("Path: ", path)
 
     # print("ALL FITNESS:", fitness_value_list)
-
+    """
     best_fitness_values = []
     best_fitness = []
     for _ in range(K_BEST):
@@ -196,18 +196,18 @@ def aco_iteration(graph, num_ants, best_ind=(None, None), elitism=False):
 
     # for path in fitness_list:
         # pass
-    
+    """
     print("Updatable paths")
     for path in best_fitness:
         print(path[1], end=" ")
     print("\n")
-
+    """
     # print("Best: ", best_fitness)
     for path in best_fitness:
         index = best_fitness_values.index(path[1])
         index = index if index > 0 else 1
         update_pheromone(graph, path[0], path[1], best_fitness_values[0])
-    print()
+    # print()
 
     evaporate_pheromone(graph)
 
@@ -307,7 +307,7 @@ def neighbor_probabilities(graph, actual_node):
 
     for prob in probabilities:
         probabilities[prob] /= total_probabilties
-        
+
     # if(actual_node == "1"):
     #     # print()
     #     # print("Probs of {}".format(actual_node))
@@ -318,7 +318,7 @@ def neighbor_probabilities(graph, actual_node):
     #     # time.sleep(3)
     # # sort probabilities
     # # sorted_probs = sorted(probabilities.items(), key=operator.itemgetter(1))
-    
+
     return probabilities
 
 
@@ -331,7 +331,7 @@ def ACO(graph, num_iterations):
     best_ind = (None, None)
 
     for _ in range(num_iterations):
-        print("CONTADOR: {}".format(cont))
+        # print("CONTADOR: {}".format(cont))
         best_ind, max_fit, avg_fit, worst_fit = aco_iteration(graph, 600, best_ind, elitism=False)
 
         # Values of each iteration stored
@@ -343,11 +343,14 @@ def ACO(graph, num_iterations):
         cont_list.append(cont)
         cont += 1
 
+        print("{},{:.3f},{},{}".format(max_fit, avg_fit, worst_fit, cont))
+        # print(max_fit, avg_fit, worst_fit, cont)
+
         # Graph plot
-        plt.plot(cont_list, max_fit_list, 'r--', cont_list, avg_fit_list, 'b--', cont_list, worst_fit_list, 'g--')
-        plt.pause(1)
-        plt.gcf().clear()
-        plt.close()
+        # plt.plot(cont_list, max_fit_list, 'r--', cont_list, avg_fit_list, 'b--', cont_list, worst_fit_list, 'g--')
+        # plt.pause(1)
+        # plt.gcf().clear()
+        # plt.close()
 
 graph = Graph('./datasets/graph1.txt')
 # ACO(graph, 1)
