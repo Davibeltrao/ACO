@@ -5,11 +5,14 @@ import random
 import copy
 import operator
 import numpy as np
+import math
+import matplotlib.pyplot as plt
+import sched, time
 
-# MIN_PHEROMONE=
-# MAX_PHEROMONE=1000
-K_BEST = 100
-EVAPORATE_RATIO = 0.1
+# MIN_PHEROMONE = 1
+# MAX_PHEROMONE = 100000
+K_BEST = 20
+EVAPORATE_RATIO = 0.05
 
 
 class Graph():
@@ -21,58 +24,63 @@ class Graph():
         
     def _buildGraph(self, lines):
         self.graph = {}
-        self.INIT = lines[0][0]
-        self.END = lines[-1][0]
+        self.INIT = '1'
+        self.END = self._getEndNode(lines) 
         print("Init:", self.INIT, " End:", self.END)
         for vertex in lines:
             self.addEdge(vertex[0], vertex[1], vertex[2])
+
+    def _getEndNode(self, lines):
+        max = 0
+        for line in lines:
+            if int(line[0]) > max:
+                max = int(line[0])
+        return str(max)
 
     def addEdge(self, ori, dest, weight):
         if(ori in self.graph):
             self.graph[ori][dest] = {}
             self._setWeight(ori, dest, weight)
-            self._setPheromone(ori, dest, 500)
+            self._setPheromone(ori, dest, 1)
         else:
             self.graph[ori] = {}
             self.graph[ori][dest] = {}
             self._setWeight(ori, dest, weight)
-            self._setPheromone(ori, dest, 500)
-        
+            self._setPheromone(ori, dest, 1)
+
     def _setWeight(self, ori, dest, weight):
         self.graph[ori][dest]['weight'] = int(weight)
-    
+
     def _getWeight(self, ori, dest):
         return self.graph[ori][dest]['weight']
-    
+
     def _setPheromone(self, ori, dest, pheronome):
         # if pheronome <= MIN_PHEROMONE:
-        #     self.graph[ori][dest]['pheromone']=MIN_PHEROMONE
+        #     self.graph[ori][dest]['pheromone'] = MIN_PHEROMONE
         # elif pheronome >= MAX_PHEROMONE:
-        #     self.graph[ori][dest]['pheromone']=MAX_PHEROMONE
+        #     self.graph[ori][dest]['pheromone'] = MAX_PHEROMONE
         # else:
         self.graph[ori][dest]['pheromone'] = pheronome
-    
+
     def _getPheromone(self, ori, dest):
         return self.graph[ori][dest]['pheromone']
-    
+
     def _adjacentNeighbors(self, node):
         return [key for key in self.graph[node].keys()]
 # print()
 
 
-def update_pheromone(graph, path, path_fitness, divider=1):
+def update_pheromone(graph, path, path_fitness, best_path):
     origin = path[0]
     aux_path = path[1:]
-    
     max_weight = 0
-
     for dest in aux_path:
         weight = graph._getWeight(origin, dest)
         max_weight = max(weight, max_weight)
         origin = dest
     
-    pheromone_update_value = float(max_weight)/path_fitness
-
+    pheromone_update_value = path_fitness/best_path
+    
     origin = path[0]
 
     # print("PATH: ", aux_path)
@@ -83,12 +91,11 @@ def update_pheromone(graph, path, path_fitness, divider=1):
     for dest in aux_path:
         # Update pheromone
         pheromone = graph._getPheromone(origin, dest)
-        pheromone += path_fitness
-        # pheromone += 6
+        pheromone += pheromone_update_value
+        # pheromone += 3
         if origin == '1':
             # print(pheromone)
             pass
-        pheromone /= divider
         graph._setPheromone(origin, dest, pheromone)
         origin = dest
 
@@ -121,6 +128,8 @@ def aco_iteration(graph, num_ants, best_ind=(None, None), elitism=False):
     paths = []
     fitness_list = []
     fitness_value_list = []
+    average_fitness = None
+    worst_fitness = None
 
     for _ in range(num_ants):
         path_i = generate_path(graph)
@@ -138,8 +147,19 @@ def aco_iteration(graph, num_ants, best_ind=(None, None), elitism=False):
         if(max_fit < fitness):
             max_fit = fitness
             best_path = path
-            
+        if worst_fitness is None or worst_fitness > fitness:
+            worst_fitness = fitness    
+
+
         # break
+
+    average_fitness = np.array(fitness_value_list).mean()
+
+    print("Best: {} Worst: {} Average: {}".format(
+                                                  max_fit, 
+                                                  worst_fitness, 
+                                                  average_fitness
+                                                  )) 
 
     print("Max fitness: ", max_fit)
     # print("Path: ", path)
@@ -154,6 +174,7 @@ def aco_iteration(graph, num_ants, best_ind=(None, None), elitism=False):
             fitness_value_list.remove(max(fitness_value_list))
         # pass
     # print(fitness_list)    
+
 
     # print("Best Individual", best_ind)
 
@@ -185,12 +206,12 @@ def aco_iteration(graph, num_ants, best_ind=(None, None), elitism=False):
     for path in best_fitness:
         index = best_fitness_values.index(path[1])
         index = index if index > 0 else 1
-        update_pheromone(graph, path[0], path[1])
+        update_pheromone(graph, path[0], path[1], best_fitness_values[0])
     print()
-    
+
     evaporate_pheromone(graph)
 
-    return best_ind
+    return best_ind, max_fit, average_fitness, worst_fitness
 
 
 def calculate_fitness(graph, path):
@@ -271,13 +292,13 @@ def neighbor_probabilities(graph, actual_node):
         neighbor_weight = graph._getWeight(actual_node, neighbor)
         neightbor_pheromone = graph._getPheromone(actual_node, neighbor)
         
-        if(actual_node == "1"):
-            # print("Neighbor:{}:W-{}:P-{:.3f}".format(
-            #                                          neighbor, 
-            #                                          neighbor_weight,
-            #                                          neightbor_pheromone)
-            #                                          )
-            pass
+        # if(actual_node == "1"):
+        #     # print("Neighbor:{}:W-{}:P-{:.3f}".format(
+        #     #                                          neighbor, 
+        #     #                                          neighbor_weight,
+        #     #                                          neightbor_pheromone)
+        #     #                                          )
+        #     pass
 
         probabilities[neighbor] = neighbor_weight*neightbor_pheromone
 
@@ -287,28 +308,46 @@ def neighbor_probabilities(graph, actual_node):
     for prob in probabilities:
         probabilities[prob] /= total_probabilties
         
-    if(actual_node == "1"):
-        # print()
-        # print("Probs of {}".format(actual_node))
-        for prob in probabilities:
-            # print("{}:{:.3f}".format(prob, probabilities[prob]), end="  | ")
-            pass
-        # print("\n\n")
-        # time.sleep(3)
-    # sort probabilities
-    # sorted_probs = sorted(probabilities.items(), key=operator.itemgetter(1))
+    # if(actual_node == "1"):
+    #     # print()
+    #     # print("Probs of {}".format(actual_node))
+    #     for prob in probabilities:
+    #         # print("{}:{:.3f}".format(prob, probabilities[prob]), end="  | ")
+    #         pass
+    #     # print("\n\n")
+    #     # time.sleep(3)
+    # # sort probabilities
+    # # sorted_probs = sorted(probabilities.items(), key=operator.itemgetter(1))
     
     return probabilities
 
 
 def ACO(graph, num_iterations):
     cont = 0
+    max_fit_list = []
+    avg_fit_list = []
+    worst_fit_list = []
+    cont_list = []
     best_ind = (None, None)
+
     for _ in range(num_iterations):
-        #print("CONTADOR: {}".format(cont))
-        best_ind = aco_iteration(graph, 600, best_ind, elitism=False)
+        print("CONTADOR: {}".format(cont))
+        best_ind, max_fit, avg_fit, worst_fit = aco_iteration(graph, 600, best_ind, elitism=False)
+
+        # Values of each iteration stored
+        max_fit_list.append(max_fit)
+        avg_fit_list.append(avg_fit)
+        worst_fit_list.append(worst_fit)
+
+        # Iteration number
+        cont_list.append(cont)
         cont += 1
 
+        # Graph plot
+        plt.plot(cont_list, max_fit_list, 'r--', cont_list, avg_fit_list, 'b--', cont_list, worst_fit_list, 'g--')
+        plt.pause(1)
+        plt.gcf().clear()
+        plt.close()
 
 graph = Graph('./datasets/graph1.txt')
 # ACO(graph, 1)
